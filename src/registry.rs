@@ -3655,6 +3655,7 @@ impl CheckKind {
                 | CheckKind::MisplacedComparisonConstant(..)
                 | CheckKind::MissingReturnTypeSpecialMethod(..)
                 | CheckKind::NativeLiterals(..)
+                | CheckKind::NestedIfStatements
                 | CheckKind::NewLineAfterLastParagraph
                 | CheckKind::NewLineAfterSectionName(..)
                 | CheckKind::NoBlankLineAfterFunction(..)
@@ -3811,6 +3812,9 @@ impl CheckKind {
             }
             CheckKind::NativeLiterals(literal_type) => {
                 Some(format!("Replace with `{literal_type}`"))
+            }
+            CheckKind::NestedIfStatements => {
+                Some("Combine `if` statements using `and`".to_string())
             }
             CheckKind::OpenAlias => Some("Replace with builtin `open`".to_string()),
             CheckKind::OrTrue => Some("Replace with `True`".to_string()),

@@ -1,8 +1,10 @@
+use log::error;
 use rustpython_ast::{Constant, Expr, ExprKind, Stmt, StmtKind};
 
+use super::fix_if;
 use crate::ast::types::Range;
 use crate::checkers::ast::Checker;
-use crate::registry::{Check, CheckKind};
+use crate::registry::{Check, CheckCode, CheckKind};
 
 fn is_main_check(expr: &Expr) -> bool {
     if let ExprKind::Compare {
@@ -57,8 +59,14 @@ pub fn nested_if_statements(checker: &mut Checker, stmt: &Stmt) {
         return;
     }
 
-    checker.add_check(Check::new(
-        CheckKind::NestedIfStatements,
-        Range::from_located(stmt),
-    ));
+    let mut check = Check::new(CheckKind::NestedIfStatements, Range::from_located(stmt));
+    if checker.patch(&CheckCode::SIM102) {
+        match fix_if::fix_nested_if_statements(checker.locator, stmt) {
+            Ok(fix) => {
+                check.amend(fix);
+            }
+            Err(err) => error!("{}", err),
+        }
+    }
+    checker.add_check(check);
 }

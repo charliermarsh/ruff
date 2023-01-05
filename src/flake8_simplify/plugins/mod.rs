@@ -11,6 +11,7 @@ mod ast_bool_op;
 mod ast_for;
 mod ast_if;
 mod ast_with;
+mod fix_if;
 mod key_in_dict;
 mod return_in_try_except_finally;
 mod use_contextlib_suppress;
