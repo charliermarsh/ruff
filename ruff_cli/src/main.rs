@@ -1,23 +1,46 @@
+#![allow(
+    clippy::collapsible_else_if,
+    clippy::collapsible_if,
+    clippy::implicit_hasher,
+    clippy::match_same_arms,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::similar_names,
+    clippy::too_many_lines
+)]
+#![forbid(unsafe_code)]
+
 use std::io::{self};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::mpsc::channel;
 
-use ::ruff::cli::{extract_log_level, Cli, Overrides};
 use ::ruff::logging::{set_up_logging, LogLevel};
-use ::ruff::printer::{Printer, Violations};
-use ::ruff::resolver::{resolve_settings, FileDiscovery, PyprojectDiscovery, Relativity};
+use ::ruff::resolver::{
+    resolve_settings_with_processor, ConfigProcessor, FileDiscovery, PyprojectDiscovery, Relativity,
+};
 use ::ruff::settings::configuration::Configuration;
 use ::ruff::settings::types::SerializationFormat;
 use ::ruff::settings::{pyproject, Settings};
-#[cfg(feature = "update-informer")]
-use ::ruff::updates;
-use ::ruff::{commands, fix, warn_user_once};
+use ::ruff::{fix, warn_user_once};
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
+use cli::{extract_log_level, Cli, Overrides};
 use colored::Colorize;
 use notify::{recommended_watcher, RecursiveMode, Watcher};
 use path_absolutize::path_dedot;
+use printer::{Printer, Violations};
+
+mod cache;
+mod cli;
+mod commands;
+mod diagnostics;
+mod iterators;
+mod printer;
+#[cfg(all(feature = "update-informer"))]
+pub mod updates;
 
 /// Resolve the relevant settings strategy and defaults for the current
 /// invocation.
@@ -30,14 +53,14 @@ fn resolve(
     if isolated {
         // First priority: if we're running in isolated mode, use the default settings.
         let mut config = Configuration::default();
-        config.apply(overrides.clone());
+        overrides.process_config(&mut config);
         let settings = Settings::from_configuration(config, &path_dedot::CWD)?;
         Ok(PyprojectDiscovery::Fixed(settings))
     } else if let Some(pyproject) = config {
         // Second priority: the user specified a `pyproject.toml` file. Use that
         // `pyproject.toml` for _all_ configuration, and resolve paths relative to the
         // current working directory. (This matches ESLint's behavior.)
-        let settings = resolve_settings(pyproject, &Relativity::Cwd, Some(overrides))?;
+        let settings = resolve_settings_with_processor(pyproject, &Relativity::Cwd, overrides)?;
         Ok(PyprojectDiscovery::Fixed(settings))
     } else if let Some(pyproject) = pyproject::find_settings_toml(
         stdin_filename
@@ -49,14 +72,14 @@ fn resolve(
         // that directory. (With `Strategy::Hierarchical`, we'll end up finding
         // the "closest" `pyproject.toml` file for every Python file later on,
         // so these act as the "default" settings.)
-        let settings = resolve_settings(&pyproject, &Relativity::Parent, Some(overrides))?;
+        let settings = resolve_settings_with_processor(&pyproject, &Relativity::Parent, overrides)?;
         Ok(PyprojectDiscovery::Hierarchical(settings))
     } else if let Some(pyproject) = pyproject::find_user_settings_toml() {
         // Fourth priority: find a user-specific `pyproject.toml`, but resolve all paths
         // relative the current working directory. (With `Strategy::Hierarchical`, we'll
         // end up the "closest" `pyproject.toml` file for every Python file later on, so
         // these act as the "default" settings.)
-        let settings = resolve_settings(&pyproject, &Relativity::Cwd, Some(overrides))?;
+        let settings = resolve_settings_with_processor(&pyproject, &Relativity::Cwd, overrides)?;
         Ok(PyprojectDiscovery::Hierarchical(settings))
     } else {
         // Fallback: load Ruff's default settings, and resolve all paths relative to the
@@ -64,13 +87,13 @@ fn resolve(
         // "closest" `pyproject.toml` file for every Python file later on, so these act
         // as the "default" settings.)
         let mut config = Configuration::default();
-        config.apply(overrides.clone());
+        overrides.process_config(&mut config);
         let settings = Settings::from_configuration(config, &path_dedot::CWD)?;
         Ok(PyprojectDiscovery::Hierarchical(settings))
     }
 }
 
-pub(crate) fn inner_main() -> Result<ExitCode> {
+pub fn main() -> Result<ExitCode> {
     // Extract command-line arguments.
     let (cli, overrides) = Cli::parse().partition();
     let log_level = extract_log_level(&cli);
@@ -128,7 +151,7 @@ pub(crate) fn inner_main() -> Result<ExitCode> {
     };
 
     if let Some(code) = cli.explain {
-        commands::explain(&code, &format)?;
+        commands::explain(&code, format)?;
         return Ok(ExitCode::SUCCESS);
     }
     if cli.show_settings {
@@ -194,7 +217,7 @@ pub(crate) fn inner_main() -> Result<ExitCode> {
             cache.into(),
             fix::FixMode::None,
         )?;
-        printer.write_continuously(&messages)?;
+        printer.write_continuously(&messages);
 
         // Configure the file watcher.
         let (tx, rx) = channel();
@@ -224,7 +247,7 @@ pub(crate) fn inner_main() -> Result<ExitCode> {
                             cache.into(),
                             fix::FixMode::None,
                         )?;
-                        printer.write_continuously(&messages)?;
+                        printer.write_continuously(&messages);
                     }
                 }
                 Err(err) => return Err(err.into()),
