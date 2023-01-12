@@ -6,17 +6,17 @@ use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet, Sou
 use anyhow::Result;
 use colored::Colorize;
 use itertools::iterate;
+use ruff::fs::relativize_path;
+use ruff::logging::LogLevel;
+use ruff::message::Message;
+use ruff::registry::RuleCode;
+use ruff::settings::types::SerializationFormat;
+use ruff::{fix, notify_user};
 use rustpython_parser::ast::Location;
 use serde::Serialize;
 use serde_json::json;
 
 use crate::diagnostics::Diagnostics;
-use crate::fs::relativize_path;
-use crate::logging::LogLevel;
-use crate::message::Message;
-use crate::registry::RuleCode;
-use crate::settings::types::SerializationFormat;
-use crate::{fix, notify_user};
 
 /// Enum to control whether lint violations are shown to the user.
 pub enum Violations {

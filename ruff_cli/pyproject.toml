@@ -13,7 +13,7 @@ maintainers = [
   { name = "Charlie Marsh", email = "charlie.r.marsh@gmail.com" },
 ]
 requires-python = ">=3.7"
-license = { file = "LICENSE" }
+license = { file = "../LICENSE" }
 keywords = ["automation", "flake8", "pycodestyle", "pyflakes", "pylint", "clippy"]
 classifiers = [
     "Development Status :: 3 - Alpha",

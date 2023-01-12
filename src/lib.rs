@@ -12,14 +12,12 @@
 )]
 #![forbid(unsafe_code)]
 
-mod ast;
-mod autofix;
-mod cache;
+pub mod ast;
+pub mod autofix;
+pub mod cache;
 mod checkers;
-pub mod cli;
 mod cst;
-mod diagnostics;
-mod directives;
+pub mod directives;
 mod doc_lines;
 mod docstrings;
 mod eradicate;
@@ -47,7 +45,6 @@ pub mod flake8_tidy_imports;
 mod flake8_unused_arguments;
 pub mod fs;
 mod isort;
-pub mod iterators;
 mod lex;
 pub mod linter;
 pub mod logging;
@@ -56,7 +53,6 @@ pub mod message;
 mod noqa;
 mod pandas_vet;
 pub mod pep8_naming;
-pub mod printer;
 mod pycodestyle;
 pub mod pydocstyle;
 mod pyflakes;
@@ -67,23 +63,20 @@ mod pyupgrade;
 pub mod registry;
 pub mod resolver;
 mod ruff;
-mod rustpython_helpers;
+pub mod rustpython_helpers;
 pub mod settings;
 pub mod source_code;
 mod vendor;
 mod violation;
-mod violations;
+pub mod violations;
 mod visibility;
 
 use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(not(target_family = "wasm"))] {
-        pub mod commands;
-        mod packaging;
+        pub mod packaging;
 
-        #[cfg(all(feature = "update-informer"))]
-        pub mod updates;
 
         mod lib_native;
         pub use lib_native::check;
