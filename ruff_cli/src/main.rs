@@ -151,7 +151,7 @@ pub fn main() -> Result<ExitCode> {
     };
 
     if let Some(code) = cli.explain {
-        commands::explain(&code, &format)?;
+        commands::explain(&code, format)?;
         return Ok(ExitCode::SUCCESS);
     }
     if cli.show_settings {
@@ -217,7 +217,7 @@ pub fn main() -> Result<ExitCode> {
             cache.into(),
             fix::FixMode::None,
         )?;
-        printer.write_continuously(&messages)?;
+        printer.write_continuously(&messages);
 
         // Configure the file watcher.
         let (tx, rx) = channel();
@@ -247,7 +247,7 @@ pub fn main() -> Result<ExitCode> {
                             cache.into(),
                             fix::FixMode::None,
                         )?;
-                        printer.write_continuously(&messages)?;
+                        printer.write_continuously(&messages);
                     }
                 }
                 Err(err) => return Err(err.into()),

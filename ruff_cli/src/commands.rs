@@ -289,7 +289,7 @@ struct Explanation<'a> {
 }
 
 /// Explain a `RuleCode` to the user.
-pub fn explain(code: &RuleCode, format: &SerializationFormat) -> Result<()> {
+pub fn explain(code: &RuleCode, format: SerializationFormat) -> Result<()> {
     match format {
         SerializationFormat::Text | SerializationFormat::Grouped => {
             println!(

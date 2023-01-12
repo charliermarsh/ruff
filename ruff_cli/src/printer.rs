@@ -282,9 +282,9 @@ impl<'a> Printer<'a> {
         Ok(())
     }
 
-    pub fn write_continuously(&self, diagnostics: &Diagnostics) -> Result<()> {
+    pub fn write_continuously(&self, diagnostics: &Diagnostics) {
         if matches!(self.log_level, LogLevel::Silent) {
-            return Ok(());
+            return;
         }
 
         if self.log_level >= &LogLevel::Default {
@@ -302,10 +302,9 @@ impl<'a> Printer<'a> {
                 print_message(message);
             }
         }
-
-        Ok(())
     }
 
+    #[allow(clippy::unused_self)]
     pub fn clear_screen(&self) -> Result<()> {
         #[cfg(not(target_family = "wasm"))]
         clearscreen::clear()?;
